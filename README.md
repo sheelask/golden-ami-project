@@ -1,4 +1,4 @@
-# golden-ami-project
+# Golden AMI creation using Packer and Chef
 This repository will contain the packer templates required to build and harden an AWS AMI
 
 # Install Packer
