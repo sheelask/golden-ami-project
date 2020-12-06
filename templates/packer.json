@@ -1,0 +1,63 @@
+{
+    "variables": {
+        "aws_access_key": "AKIA2J56UBMT4SUPO2NR",
+        "aws_secret_key": "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",
+        "aws_subnet_id": "subnet-045521c8e3b422fcc"
+    },
+    "builders": [
+        {
+            "type": "amazon-ebs",
+            "access_key": "{{user `aws_access_key`}}",
+            "secret_key": "{{user `aws_secret_key`}}",
+            "subnet_id": "{{user `aws_subnet_id`}}",
+            "region": "us-east-1",
+            "instance_type": "t2.micro",
+            "ami_name": "bookapp-{{timestamp}}",
+            "source_ami_filter": {
+                "filters": {
+                    "virtualization-type": "hvm",
+                    "name": "*ubuntu/images/*ubuntu-focal-20.04-amd64-server-*",
+                    "root-device-type": "ebs"
+                },
+                "owners": ["099720109477"],
+                "most_recent": true
+            },
+            "security_group_filter": {
+                "filters": {
+                    "tag:Class": "packer"
+                }
+            },
+            "ssh_username": "ubuntu"
+        }
+    ],
+    "provisioners": [
+        {
+            "type": "shell",
+            "inline": [
+                "sudo apt-get update -y && sudo apt-get upgrade -y",
+                "echo '10.0.1.101 chef.ece2.internal' | sudo tee -a /etc/hosts",
+                "mkdir /tmp/packer-chef-client"
+            ]
+        },
+        {
+            "type": "file",
+            "source": "packer.pem",
+            "destination": "/tmp/packer-chef-client/packer.pem"
+        },
+        {
+            "type": "file",
+            "source": "/home/cloud_user/.chef/trusted_certs",
+            "destination": "/tmp/packer-chef-client/"
+        },
+        {
+            "type": "chef-client",
+            "server_url": "https://chef.ec2.internal/organizations/bookapp",
+            "client_key": "/tmp/packer-chef-client/packer.pem",
+            "validation_client_name": "bookapp",
+            "validation_key_path": "/home/cloud_user/chef-repo/.chef/bookapp.pem",
+            "trusted_certs_dir": "/tmp/packer-chef-client/trusted_certs",
+            "node_name": "packer",
+            "run_list": ["apache2::bookapp"]
+        }
+    ]
+}
